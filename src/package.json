@@ -1,0 +1,34 @@
+{
+  "name": "random-call",
+  "version": "1.0.4",
+  "main": "main.js",
+  "description": "班级随机点名工具，支持自定义班级和人数，数据持久化保存",
+  "author": "Random Call",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.randomcall.app",
+    "productName": "班级随机点名",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "班级随机点名"
+    },
+    "files": [
+      "**/*"
+    ]
+  }
+}
