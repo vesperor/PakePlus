@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班级随机点名</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23a78bfa'/%3E%3Cstop offset='1' stop-color='%23f472b6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%E7%82%B9%3C/text%3E%3C/svg%3E">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(1200px 800px at 20% 10%, #fce7f3 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 85% 90%, #ede9fe 0%, transparent 55%),
+                  linear-gradient(135deg, #fff1f2 0%, #f5f3ff 100%);
+      color: #3b2f5e;
+      padding: 20px;
+      padding-top: calc(20px + env(safe-area-inset-top));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card {
+      width: 100%; max-width: 420px;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 32px;
+      padding: 30px 26px 26px;
+      box-shadow: 0 24px 70px rgba(160,140,210,0.25);
+      position: relative;
+    }
+    .brand { font-size: 11px; letter-spacing: 5px; color: #b6a8d8; font-weight: 600; margin-bottom: 14px; text-align: center; }
+    .gear {
+      position: absolute; top: 22px; right: 24px;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.6); border: 1px solid #efe6ff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #b6a8d8;
+    }
+    .gear svg { width: 18px; height: 18px; }
+    .screen {
+      height: 190px; border-radius: 26px;
+      background: linear-gradient(180deg, #ffffff 0%, #faf8ff 100%);
+      box-shadow: inset 0 2px 10px rgba(150,130,200,0.08);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin-bottom: 18px; position: relative;
+    }
+    .num {
+      font-size: 92px; font-weight: 800; letter-spacing: 2px; line-height: 1;
+      background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-variant-numeric: tabular-nums;
+    }
+    .num.pop { animation: pop 0.35s ease; }
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.12); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .hint { font-size: 12px; color: #c9bde0; margin-top: 10px; letter-spacing: 2px; }
+    .modeTag {
+      position: absolute; top: 12px; left: 14px;
+      font-size: 10px; padding: 3px 8px; border-radius: 8px;
+      background: #f3eaff; color: #a89bc4; letter-spacing: 1px;
+    }
+    .modeTag.weighted { background: #fde7ef; color: #d482a3; }
+    input, textarea {
+      width: 100%; padding: 14px 18px;
+      border: 2px solid #f0e7ff; border-radius: 16px;
+      font-size: 16px; outline: none; background: #fff; margin-bottom: 12px;
+      color: #555; transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus { border-color: #c4b5fd; }
+    textarea { min-height: 70px; resize: vertical; }
+    .btn {
+      width: 100%; padding: 15px; border: none; border-radius: 18px;
+      font-size: 17px; font-weight: 700; color: #fff; cursor: pointer; margin-bottom: 10px;
+      background: linear-gradient(135deg, #c4b5fd 0%, #f9a8d4 100%);
+      box-shadow: 0 10px 24px rgba(196,181,253,0.45);
+      transition: transform 0.08s;
+      touch-action: manipulation; font-family: inherit;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn.ghost {
+      background: transparent; color: #c3b6dd; box-shadow: none;
+      font-size: 13px; padding: 10px; margin-top: 2px; font-weight: 500;
+    }
+    .btn.small { padding: 10px; font-size: 14px; margin-bottom: 0; }
+    .btn.danger { background: linear-gradient(135deg, #fda4af 0%, #fca5a5 100%); }
+    .status { font-size: 12px; color: #b8a8d0; margin-top: 8px; letter-spacing: 1px; min-height: 16px; text-align: center; }
+    .version-mark { font-size: 10px; color: #d4cbe8; margin-top: 6px; text-align: center; letter-spacing: 1px; }
+    .history {
+      margin-top: 12px; text-align: left; font-size: 12px; color: #a89bc4;
+      line-height: 1.9; max-height: 80px; overflow-y: auto; padding: 0 4px;
+    }
+    .history b { color: #8b7ab0; font-weight: 600; }
+    .chip {
+      display: inline-block; background: #f3eaff; color: #8b7ab0;
+      border-radius: 8px; padding: 1px 8px; margin: 2px 3px; font-size: 12px;
+    }
+    .chip.leave { background: #fde7ef; color: #d482a3; }
+    .panel-mask {
+      position: fixed; inset: 0; background: rgba(80,60,120,0.35);
+      backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+    }
+    .panel-mask.show { display: flex; }
+    .panel {
+      width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto;
+      background: #fff; border-radius: 26px; padding: 26px 22px;
+      box-shadow: 0 20px 60px rgba(100,80,150,0.3);
+    }
+    .panel h2 { font-size: 18px; color: #6b5b95; margin-bottom: 4px; }
+    .panel .sub { font-size: 12px; color: #b0a3cc; margin-bottom: 18px; }
+    .field { margin-bottom: 16px; text-align: left; }
+    .field label { font-size: 13px; color: #8b7ab0; font-weight: 600; display: block; margin-bottom: 6px; }
+    .field .tip { font-size: 11px; color: #c0b3d8; margin-top: 4px; line-height: 1.5; }
+    .field input { margin-bottom: 0; }
+    .field textarea { margin-bottom: 0; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    .row .sub-label { font-size: 11px; color: #b0a3cc; margin-bottom: 4px; }
+    .panel-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .panel-actions .btn { flex: 1; }
+    .divider { height: 1px; background: #f0e7ff; margin: 18px 0; }
+    .ok { color: #7ec99a; font-size: 13px; text-align: center; margin-top: 8px; min-height: 18px; }
+    .preview-box {
+      background: #f8f4ff; border-radius: 12px; padding: 10px 14px;
+      font-size: 12px; color: #8b7ab0; line-height: 1.7; margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">CLASS&nbsp;ROLL&nbsp;CALL</div>
+    <div class="gear" id="gearBtn" title="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+    </div>
+    <div class="screen">
+      <div class="modeTag" id="modeTag">公平模式</div>
+      <div class="num" id="num">?</div>
+      <div class="hint" id="screenHint">点击抽号</div>
+    </div>
+    <input id="absent" placeholder="本轮请假编号，逗号分隔；无填 0" inputmode="text" autocomplete="off">
+    <button class="btn" id="apply">确认设置</button>
+    <button class="btn" id="draw">抽 号</button>
+    <button class="btn ghost" id="reset">重置本轮</button>
+    <div class="status" id="status">就绪 · 可抽 50 人</div>
+    <div class="version-mark">v4.2 班级版 · 数据持久化存储</div>
+    <div class="history" id="history"></div>
+  </div>
+  <div class="panel-mask" id="setMask">
+    <div class="panel">
+      <h2>应用设置</h2>
+      <div class="sub">名单支持短号（1-人数）或全号（班级序号），逗号分隔；数据自动保存在本机</div>
+      <div class="field">
+        <div class="row">
+          <div>
+            <label>班级号</label>
+            <input id="classNum" type="number" min="1" max="99" placeholder="例如：1">
+            <div class="tip">班级号将作为编号前两位</div>
+          </div>
+          <div>
+            <label>班级人数</label>
+            <input id="studentCount" type="number" min="1" max="99" placeholder="例如：50">
+            <div class="tip">修改后建议重置加权名单</div>
+          </div>
+        </div>
+        <div class="preview-box" id="classPreview">
+          当前学生编号范围：<b>0101 ~ 0150</b>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label>加权名单（重点提问）</label>
+        <textarea id="upList" placeholder="如：0129, 0114, 0141"></textarea>
+      </div>
+      <div class="field">
+        <label>减权名单（少提问）</label>
+        <textarea id="downList" placeholder="如：0103, 0108, 0116"></textarea>
+      </div>
+      <div class="field">
+        <label>权重倍率</label>
+        <div class="row">
+          <div>
+            <div class="sub-label">加权号</div>
+            <input id="wUp" type="number" inputmode="decimal" value="2" min="0" max="20" step="0.5">
+          </div>
+          <div>
+            <div class="sub-label">普通号</div>
+            <input id="wMid" type="number" inputmode="decimal" value="1" min="0" max="20" step="0.5">
+          </div>
+          <div>
+            <div class="sub-label">减权号</div>
+            <input id="wDown" type="number" inputmode="decimal" value="0.5" min="0" max="20" step="0.1">
+          </div>
+        </div>
+        <div class="tip">数字越大越容易被抽中；普通号默认 1</div>
+      </div>
+      <div class="field">
+        <label>永久排除列表</label>
+        <textarea id="wBan" placeholder="这些号永远不参与抽号"></textarea>
+      </div>
+      <div class="preview-box" id="probPreview"></div>
+      <div class="divider"></div>
+      <div class="panel-actions">
+        <button class="btn ghost" id="setClose">关闭</button>
+        <button class="btn" id="setSave">保存</button>
+      </div>
+      <div class="ok" id="setMsg"></div>
+    </div>
+  </div>
+<script>
+(function(){
+  let BASE, TOTAL;
+  const EPS = Number.EPSILON;
+  const numEl = document.getElementById('num');
+  const statusEl = document.getElementById('status');
+  const absentEl = document.getElementById('absent');
+  const screenHint = document.getElementById('screenHint');
+  const historyEl = document.getElementById('history');
+  const modeTag = document.getElementById('modeTag');
+  let pool = [];
+  let drawn = [];
+  let leaveSet = new Set();
+
+  // 全局配置
+  let config = {
+    classNum: 1,
+    studentCount: 50,
+    weightList: [],
+    reduceList: [],
+    excludeList: [],
+    weightValue: 2,
+    reduceValue: 0.5
+  };
+
+  // 【核心修复1】生成4位固定编号
+  function generateStudentId(classNum, studentNum) {
+    const classStr = String(classNum).padStart(2, '0');
+    const numStr = String(studentNum).padStart(2, '0');
+    return classStr + numStr;
+  }
+
+  // 【核心修复2】模式判定逻辑
+  function getCurrentMode() {
+    const weightEnabled = config.weightList.length > 0 && config.weightValue !== 1;
+    const reduceEnabled = config.reduceList.length > 0 && config.reduceValue !== 1;
+
+    if (weightEnabled && reduceEnabled) return '混合模式';
+    if (weightEnabled) return '加权模式';
+    if (reduceEnabled) return '减权模式';
+    return '公平模式';
+  }
+
+  // 更新模式显示
+  function updateModeDisplay() {
+    const mode = getCurrentMode();
+    modeTag.textContent = mode;
+    modeTag.classList.toggle('weighted', mode !== '公平模式');
+  }
+
+  function updateBaseAndTotal(){
+    BASE = config.classNum * 100;
+    TOTAL = config.studentCount;
+  }
+
+  function parseNos(text){
+    const set = new Set();
+    String(text||'').split(/[,，、\s]+/).forEach(t=>{
+      t = t.trim();
+      if(!t) return;
+      let n = parseInt(t, 10);
+      if(isNaN(n)) return;
+      if(n>=1 && n<=TOTAL) n = BASE + n - 1;
+      if(n>=BASE && n<BASE+TOTAL) set.add(n);
+    });
+    return set;
+  }
+  function getUpSet(){   return parseNos(config.weightList.join(',')); }
+  function getDownSet(){ return parseNos(config.reduceList.join(',')); }
+  function getBanSet(){  return parseNos(config.excludeList.join(',')); }
+
+  function buildPool(){
+    const ban = getBanSet();
+    pool = [];
+    for(let i=0;i<TOTAL;i++){
+      const n = BASE+i;
+      if(ban.has(n)) continue;
+      if(leaveSet.has(n)) continue;
+      pool.push(n);
+    }
+  }
+  function weightedPick(){
+    const up = getUpSet(), down = getDownSet();
+    const weights = pool.map(n => {
+      if(up.has(n))   return Math.max(0, Number(config.weightValue)||0);
+      if(down.has(n)) return Math.max(0, Number(config.reduceValue)||0);
+      return Math.max(0, Number(config.wMid)||0);
+    });
+    const total = weights.reduce((a,b)=>a+b, 0);
+    if(total <= EPS){
+      throw new Error('所有候选权重为 0，无法抽取。请在设置里调高任意权重。');
+    }
+    let r = Math.random() * total;
+    for(let i=0;i<pool.length;i++){
+      r -= weights[i];
+      if(r < 0) return i;
+    }
+    const positiveIdx = [];
+    for(let i=0;i<pool.length;i++) if(weights[i] > EPS) positiveIdx.push(i);
+    if(positiveIdx.length === 0) throw new Error('没有有效权重项。');
+    return positiveIdx[Math.floor(Math.random() * positiveIdx.length)];
+  }
+  function renderStatus(){
+    buildPool();
+    const mode = getCurrentMode();
+    modeTag.textContent = mode;
+    modeTag.classList.toggle('weighted', mode !== '公平模式');
+    statusEl.textContent = mode + ' · 可抽 ' + pool.length + ' 人 · 已抽 ' + drawn.length + ' 次';
+  }
+  function renderHistory(){
+    let html = '';
+    if(leaveSet.size){
+      html += '<b>本轮请假：</b>';
+      leaveSet.forEach(n=> html += '<span class="chip leave">'+n+'</span>');
+      html += '<br>';
+    }
+    if(drawn.length){
+      html += '<b>已抽：</b>';
+      drawn.forEach(n=> html += '<span class="chip">'+n+'</span>');
+    }
+    historyEl.innerHTML = html;
+    historyEl.scrollTop = historyEl.scrollHeight;
+  }
+  document.getElementById('apply').onclick = ()=>{
+    leaveSet = parseNos(absentEl.value);
+    buildPool();
+    renderStatus();
+    renderHistory();
+    screenHint.textContent = '已设置 · 可抽 '+pool.length+' 人';
+  };
+  document.getElementById('draw').onclick = ()=>{
+    buildPool();
+    if(pool.length === 0){
+      numEl.textContent = '完';
+      screenHint.textContent = '本轮已抽完';
+      return;
+    }
+    const drawBtn = document.getElementById('draw');
+    drawBtn.disabled = true;
+    screenHint.textContent = '抽取中…';
+    const roll = setInterval(()=>{
+      numEl.textContent = BASE + Math.floor(Math.random()*TOTAL);
+    }, 55);
+    let picked;
+    try {
+      const idx = weightedPick();
+      picked = pool[idx];
+    } catch(err) {
+      clearInterval(roll);
+      numEl.textContent = '—';
+      screenHint.textContent = '错误';
+      drawBtn.disabled = false;
+      alert(err.message);
+      return;
+    }
+    drawn.push(picked);
+    setTimeout(()=>{
+      clearInterval(roll);
+      numEl.textContent = picked;
+      numEl.classList.remove('pop');
+      void numEl.offsetWidth;
+      numEl.classList.add('pop');
+      screenHint.textContent = '就是这位';
+      renderStatus();
+      renderHistory();
+      drawBtn.disabled = false;
+    }, 900);
+  };
+  document.getElementById('reset').onclick = ()=>{
+    if(!confirm('确定重置本轮吗？已抽历史和请假设置会清空（应用配置保留）。')) return;
+    drawn = [];
+    leaveSet = new Set();
+    absentEl.value = '';
+    numEl.textContent = '?';
+    screenHint.textContent = '点击抽号';
+    renderStatus();
+    renderHistory();
+  };
+
+  // 更新班级编号预览
+  function updateClassPreview(){
+    const classNum = parseInt(document.getElementById('classNum').value) || 1;
+    const studentCount = parseInt(document.getElementById('studentCount').value) || 50;
+    const classStr = String(classNum).padStart(2, '0');
+    const start = classStr + '01';
+    const end = classStr + String(studentCount).padStart(2, '0');
+    document.getElementById('classPreview').innerHTML = `当前学生编号范围：<b>${start} ~ ${end}</b>`;
+  }
+
+  function updatePreview(){
+    const upS = parseNos(document.getElementById('upList').value);
+    const downS = parseNos(document.getElementById('downList').value);
+    const banS = parseNos(document.getElementById('wBan').value);
+    let wU = parseFloat(document.getElementById('wUp').value)||0;
+    let wM = parseFloat(document.getElementById('wMid').value)||0;
+    let wD = parseFloat(document.getElementById('wDown').value)||0;
+    let A=0, B=0, C=0;
+    for(let i=0;i<TOTAL;i++){
+      const n = BASE+i;
+      if(banS.has(n)) continue;
+      if(upS.has(n)) A++;
+      else if(downS.has(n)) B++;
+      else C++;
+    }
+    const totalW = A*wU + B*wD + C*wM;
+    const el = document.getElementById('probPreview');
+    if(totalW <= EPS || (A+B+C)===0){
+      el.innerHTML = '<span style="color:#c0b3d8">填写名单和权重后，这里显示实际被抽概率</span>';
+      return;
+    }
+    const per = (w, n) => n>0 ? (w/totalW)*100 : 0;
+    el.innerHTML =
+      '<b>预览</b>（按当前名单）<br>' +
+      '加权号 '+A+' 人：每人 <b>'+per(wU,A).toFixed(2)+'%</b>，合计 '+(per(wU,A)*A).toFixed(1)+'%<br>' +
+      '普通号 '+C+' 人：每人 <b>'+per(wM,C).toFixed(2)+'%</b>，合计 '+(per(wM,C)*C).toFixed(1)+'%<br>' +
+      '减权号 '+B+' 人：每人 <b>'+per(wD,B).toFixed(2)+'%</b>，合计 '+(per(wD,B)*B).toFixed(1)+'%';
+  }
+  function openSettings(){
+    document.getElementById('classNum').value = config.classNum;
+    document.getElementById('studentCount').value = config.studentCount;
+    updateClassPreview();
+    
+    document.getElementById('upList').value   = config.weightList.join(', ');
+    document.getElementById('downList').value = config.reduceList.join(', ');
+    document.getElementById('wUp').value       = config.weightValue;
+    document.getElementById('wMid').value      = config.wMid;
+    document.getElementById('wDown').value     = config.reduceValue;
+    document.getElementById('wBan').value       = config.excludeList.join(', ');
+    document.getElementById('setMsg').textContent = '';
+    updatePreview();
+    setMask.classList.add('show');
+  }
+  document.getElementById('setClose').onclick = ()=> setMask.classList.remove('show');
+  
+  // 绑定输入事件
+  ['upList','downList','wBan','wUp','wMid','wDown'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updatePreview);
+  });
+  ['classNum','studentCount'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateClassPreview);
+  });
+
+  // 保存配置
+  document.getElementById('setSave').onclick = async ()=>{
+    const oldClass = config.classNum;
+    const oldCount = config.studentCount;
+    
+    const newClass = parseInt(document.getElementById('classNum').value) || 1;
+    const newCount = parseInt(document.getElementById('studentCount').value) || 50;
+    
+    // 如果班级或人数变化，重置本轮状态
+    if(oldClass !== newClass || oldCount !== newCount){
+      drawn = [];
+      leaveSet = new Set();
+      absentEl.value = '';
+      numEl.textContent = '?';
+      screenHint.textContent = '点击抽号';
+    }
+    
+    // 更新配置
+    config.classNum = newClass;
+    config.studentCount = newCount;
+    updateBaseAndTotal();
+    
+    // 解析名单
+    const upText = document.getElementById('upList').value.trim();
+    const downText = document.getElementById('downList').value.trim();
+    const banText = document.getElementById('wBan').value.trim();
+    
+    config.weightList = upText ? upText.split(/[,，、\s]+/).map(s=>s.trim()).filter(s=>s) : [];
+    config.reduceList = downText ? downText.split(/[,，、\s]+/).map(s=>s.trim()).filter(s=>s) : [];
+    config.excludeList = banText ? banText.split(/[,，、\s]+/).map(s=>s.trim()).filter(s=>s) : [];
+    
+    config.weightValue = parseFloat(document.getElementById('wUp').value)||0;
+    config.wMid = parseFloat(document.getElementById('wMid').value)||1;
+    config.reduceValue = parseFloat(document.getElementById('wDown').value)||0;
+    
+    // 保存到本地
+    await window.configAPI.saveConfig(config);
+    document.getElementById('setMsg').textContent = '已保存';
+    renderStatus();
+    renderHistory();
+    setTimeout(()=> setMask.classList.remove('show'), 500);
+  };
+
+  // 设置按钮直接打开设置，无需密码
+  document.getElementById('gearBtn').onclick = ()=>{
+    openSettings();
+  };
+
+  // 页面初始化
+  async function init(){
+    // 加载本地配置
+    const saved = await window.configAPI.loadConfig();
+    if(saved){
+      config = { ...config, ...saved };
+    }
+    updateBaseAndTotal();
+    renderStatus();
+    renderHistory();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
